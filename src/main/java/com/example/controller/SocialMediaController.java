@@ -5,6 +5,7 @@ import com.example.repository.AccountRepository;
 import com.example.service.AccountService;
 import com.example.service.MessageService;
 import org.springframework.http.ResponseEntity;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -35,7 +36,7 @@ public class SocialMediaController {
      *         case of duplicate username, and 200 in case of successful registration
      */
     @PostMapping("/register")
-    public ResponseEntity registerAccount(@RequestBody Account account) {
+    public ResponseEntity<Account> registerAccount(@RequestBody Account account) {
         Optional<Account> result = accountService.registerAccount(account);
 
         //failed because of empty or short username
@@ -44,7 +45,7 @@ public class SocialMediaController {
         else if(result.isEmpty()) // failed because of duplicate
             return ResponseEntity.status(409).body(account);
         else // return account with updated id if succesfully persisted
-            return ResponseEntity.status(200).body(result);
+            return ResponseEntity.status(200).body(result.get());
     }
 
     /**
@@ -53,13 +54,13 @@ public class SocialMediaController {
      * @return ResponseEntity with status 401 if login fail, or 200 if login success
      */
     @PostMapping("/login")
-    public ResponseEntity login(@RequestBody Account account) {
+    public ResponseEntity<Account> login(@RequestBody Account account) {
         Optional<Account> result = accountService.login(account);
 
         if(result.isEmpty()) // fail to login if no matching account
             return ResponseEntity.status(401).body(account);
         else // return account with account id if log in succesful
-            return ResponseEntity.status(200).body(result);
+            return ResponseEntity.status(200).body(result.get());
     }
 
     /**
@@ -69,7 +70,7 @@ public class SocialMediaController {
      *         creation successful
      */
     @PostMapping("/messages")
-    public ResponseEntity createMessage(@RequestBody Message message) {
+    public ResponseEntity<Message> createMessage(@RequestBody Message message) {
         Message result = messageService.createMessage(message);
 
         if(result == null) // failed to create message for any reason
@@ -83,7 +84,7 @@ public class SocialMediaController {
      * @return ResponseEntity with status 200. will always succeed
      */
     @GetMapping("/messages")
-    public ResponseEntity retrieveMessages() {
+    public ResponseEntity<List<Message>> retrieveMessages() {
         return ResponseEntity.status(200).body(messageService.retrieveMessages());
     }
 
@@ -94,10 +95,10 @@ public class SocialMediaController {
      *         Otherwise the response body will be empty. Status is always 200
      */
     @GetMapping("/messages/{messageId}")
-    public ResponseEntity retrieveMessageById(@PathVariable int messageId) {
+    public ResponseEntity<Message> retrieveMessageById(@PathVariable int messageId) {
         Optional<Message> result = messageService.retrieveById(messageId);
         if(!result.isEmpty())
-            return ResponseEntity.status(200).body(result); // retrieved message in body
+            return ResponseEntity.status(200).body(result.get()); // retrieved message in body
         else
             return ResponseEntity.status(200).build(); // empty body if message not found
     }
@@ -110,7 +111,7 @@ public class SocialMediaController {
      *         always 200
      */
     @DeleteMapping("/messages/{messageId}")
-    public ResponseEntity deleteById(@PathVariable int messageId) {
+    public ResponseEntity<Integer> deleteById(@PathVariable int messageId) {
         if(messageService.deleteById(messageId))
             return ResponseEntity.status(200).body(1); // 1 row updated
         else
@@ -125,7 +126,7 @@ public class SocialMediaController {
      *         Otherwise the status will be 400 and the body will be empty.
      */
     @PatchMapping("/messages/{messageId}")
-    public ResponseEntity updateMessage(@PathVariable int messageId, @RequestBody Message message) {
+    public ResponseEntity<Integer> updateMessage(@PathVariable int messageId, @RequestBody Message message) {
         if(messageService.updateMessage(messageId, message.getMessageText()))
             return ResponseEntity.status(200).body(1); // 1 row updated
         else
@@ -139,7 +140,18 @@ public class SocialMediaController {
      *         be empty.
      */
     @GetMapping("/accounts/{accountId}/messages")
-    public ResponseEntity retrieveMessagesByUser(@PathVariable int accountId) {
+    public ResponseEntity<List<Message>> retrieveMessagesByUser(@PathVariable int accountId) {
         return ResponseEntity.status(200).body(messageService.retrieveMessagesByUser(accountId));
+    }
+
+    /**
+     * Handle unexpected exceptions
+     * @param Exception e
+     * @return ResponseEntity with status 500 and the exception message in the response body
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleUnexpectedExceptions(Exception e) {
+        e.printStackTrace();
+        return ResponseEntity.status(500).body(e.getMessage());
     }
 }
