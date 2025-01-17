@@ -28,6 +28,12 @@ public class SocialMediaController {
         this.messageService = messageService;
     }
 
+    /**
+     * Use Post request to register a new account
+     * @param Account account
+     * @return ResponseEntity with status 400 in case of invalid username length, 409 in
+     *         case of duplicate username, and 200 in case of successful registration
+     */
     @PostMapping("/register")
     public ResponseEntity registerAccount(@RequestBody Account account) {
         Optional<Account> result = accountService.registerAccount(account);
@@ -39,5 +45,101 @@ public class SocialMediaController {
             return ResponseEntity.status(409).body(account);
         else // return account with updated id if succesfully persisted
             return ResponseEntity.status(200).body(result);
+    }
+
+    /**
+     * Use Post request to attempt a login for a specified account
+     * @param Account account
+     * @return ResponseEntity with status 401 if login fail, or 200 if login success
+     */
+    @PostMapping("/login")
+    public ResponseEntity login(@RequestBody Account account) {
+        Optional<Account> result = accountService.login(account);
+
+        if(result.isEmpty()) // fail to login if no matching account
+            return ResponseEntity.status(401).body(account);
+        else // return account with account id if log in succesful
+            return ResponseEntity.status(200).body(result);
+    }
+
+    /**
+     * Use Post request to create a new message
+     * @param Message message
+     * @return ResponseEntity with status 400 if message creation fails, or 200 if
+     *         creation successful
+     */
+    @PostMapping("/messages")
+    public ResponseEntity createMessage(@RequestBody Message message) {
+        Message result = messageService.createMessage(message);
+
+        if(result == null) // failed to create message for any reason
+            return ResponseEntity.status(400).body(message);
+        else // created message
+            return ResponseEntity.status(200).body(result);
+    }
+
+    /**
+     * Use Get request to retrieve a list of all messages
+     * @return ResponseEntity with status 200. will always succeed
+     */
+    @GetMapping("/messages")
+    public ResponseEntity retrieveMessages() {
+        return ResponseEntity.status(200).body(messageService.retrieveMessages());
+    }
+
+    /**
+     * Use Get request to retrieve a message by a specified messageId
+     * @param int messageId
+     * @return ResponseEntity with resulting message in response body if successful retrieval.
+     *         Otherwise the response body will be empty. Status is always 200
+     */
+    @GetMapping("/messages/{messageId}")
+    public ResponseEntity retrieveMessageById(@PathVariable int messageId) {
+        Optional<Message> result = messageService.retrieveById(messageId);
+        if(!result.isEmpty())
+            return ResponseEntity.status(200).body(result); // retrieved message in body
+        else
+            return ResponseEntity.status(200).build(); // empty body if message not found
+    }
+
+    /**
+     * Use Delete request to delete a message by a specified messageId
+     * @param int messageId
+     * @return ResponseEntity with number of affected rows (1) in response body if
+     *         deletion was successful. Otherwise the body will be empty. Status is
+     *         always 200
+     */
+    @DeleteMapping("/messages/{messageId}")
+    public ResponseEntity deleteById(@PathVariable int messageId) {
+        if(messageService.deleteById(messageId))
+            return ResponseEntity.status(200).body(1); // 1 row updated
+        else
+            return ResponseEntity.status(200).build(); // empty body
+    }
+
+    /**
+     * Use Patch request to update a specified message's messageText, given its messageId
+     * @param int messageId
+     * @param Message message
+     * @return ResponseEntity with status 200 and body 1 if a row was successfully updated.
+     *         Otherwise the status will be 400 and the body will be empty.
+     */
+    @PatchMapping("/messages/{messageId}")
+    public ResponseEntity updateMessage(@PathVariable int messageId, @RequestBody Message message) {
+        if(messageService.updateMessage(messageId, message.getMessageText()))
+            return ResponseEntity.status(200).body(1); // 1 row updated
+        else
+            return ResponseEntity.status(400).build(); // client error status and empty body
+    }
+
+    /**
+     * Use Get request to retrieve a list of messages given a specified postedBy account id
+     * @param int accountId
+     * @return ResponseEntity with status 200 and a list of messages in the response body. List can
+     *         be empty.
+     */
+    @GetMapping("/accounts/{accountId}/messages")
+    public ResponseEntity retrieveMessagesByUser(@PathVariable int accountId) {
+        return ResponseEntity.status(200).body(messageService.retrieveMessagesByUser(accountId));
     }
 }
